@@ -2,7 +2,7 @@
 
 测试日期：2026-06-05  
 目标：使用真实 Chrome 补齐上一次未覆盖的 MetaMask 钱包连接、签名交易和前端链上交互测试。  
-结论：本次确认了 Chrome 和 MetaMask 扩展存在，但当前 Codex 会话未能获得可操作的 `@电脑` 桌面控制工具，Chrome 调试端口和系统截图自动化也没有正常可用，因此无法完成真实 MetaMask 授权弹窗和钱包签名交易测试。2026-06-05 晚间继续测试时，Chrome 插件控制通道和 Node/Python 等开发运行时也出现启动层阻塞，暂时无法复跑 Hardhat/Vite 命令。
+结论：本次确认了 Chrome 和 MetaMask 扩展存在，但当前 Codex 会话未能获得可操作的浏览器交互通道，因此无法完成真实 MetaMask 授权弹窗和钱包签名交易测试。2026-06-05 晚间继续测试时，曾出现 Chrome 插件控制通道和 Node/Python 等开发运行时启动层阻塞；随后运行时恢复，已重新复跑 Hardhat/Vite 基础验证。
 
 ## 已确认事实
 
@@ -16,7 +16,7 @@
 | Hardhat RPC | 本次测试期间已确认 `http://127.0.0.1:8545` 可用 |
 | 上一次链上测试 | `npx hardhat test` 已通过，`39 passing` |
 
-## 2026-06-05 继续测试记录
+## 2026-06-05 首次继续测试记录
 
 用户要求继续使用 `@电脑` 补测后，重新做了以下检查：
 
@@ -33,6 +33,48 @@
 | 挂起采样 | Node 进程采样显示主线程停在 `_dyld_start`，JS 尚未执行 |
 
 因此，本轮没有继续启动 Hardhat node、部署脚本或 Vite 前端，也没有重新执行 `npx hardhat test`。这不是测试断言失败，而是当前 macOS/Codex 会话的开发运行时启动异常。
+
+## 2026-06-05 二次继续测试记录
+
+之后环境恢复，重新执行了基础验证并启动本地测试环境：
+
+| 检查项 | 本轮结果 |
+| --- | --- |
+| Node | `v22.22.2`，可正常启动 |
+| npm | `10.9.7`，可正常启动 |
+| `npx hardhat compile` | 通过，输出 `Nothing to compile` |
+| `npx hardhat test` | 通过，`39 passing (325ms)` |
+| `npm --workspace frontend run build` | 通过，Vite 仅提示 Web3 bundle 超过 500 kB |
+| Hardhat node | 已启动在 `http://127.0.0.1:8545/` |
+| 部署脚本 | 已在 localhost 网络部署成功 |
+| Token 合约 | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| DAICO 合约 | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| 前端 | 已启动在 `http://127.0.0.1:5173/` |
+
+Chrome 插件检查结果：
+
+| 检查项 | 结果 |
+| --- | --- |
+| Chrome 是否运行 | 是 |
+| Google Chrome 版本 | `148.0.7778.216` |
+| Codex Chrome Extension | 已安装但 disabled |
+| Codex Chrome Extension ID | `hehggadaopoacecdllhhajmbjkdcmajg` |
+| native host manifest | 正常，允许 `chrome-extension://hehggadaopoacecdllhhajmbjkdcmajg/` |
+| Chrome 插件连接 | 返回 `Browser is not available: extension` |
+
+`@电脑` 检查结果：
+
+| 检查项 | 结果 |
+| --- | --- |
+| 读取 Chrome 屏幕 | 成功 |
+| 读取 Chrome accessibility tree | 成功 |
+| Chrome 前台状态 | 成功确认 |
+| MetaMask 图标可见性 | 成功确认，工具栏存在 MetaMask 图标 |
+| 页面点击 | 失败，`click` 返回 `Computer Use is not active for 'Google Chrome'` |
+| 键盘输入 | 失败，`press_key` 返回同一 active 状态错误 |
+| 设置地址栏值 | 失败，`set_value` 返回同一 active 状态错误 |
+
+本轮结论：项目本身基础测试已恢复并通过；真实 MetaMask UI 补测仍卡在浏览器交互能力上。下一步需要用户在 Chrome 中启用 Codex Chrome Extension，或者修复 `@电脑` 交互接口的 active 状态。
 
 ## 尝试过的 Chrome 测试路径
 
