@@ -39,6 +39,16 @@ npx hardhat test
 
 测试覆盖部署、投资、退款、水龙头领取、冷却、提案门槛、投票、重复投票、提案执行、金库提款、ERC20 标准接口和异常回滚。
 
+## MetaMask 组员测试配置
+
+Chrome + MetaMask 本地测试所需的测试密码、Hardhat Local 网络参数、公开测试助记词、账户地址和手工操作流程已整理在：
+
+```text
+METAMASK_TESTING.md
+```
+
+这些信息只用于 Hardhat 本地链复现，不要用于主网、测试网或任何个人钱包。
+
 ## 本地部署与前端运行
 
 1. 启动 Hardhat 本地链：

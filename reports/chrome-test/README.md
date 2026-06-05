@@ -17,7 +17,7 @@
 | Token 合约 | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
 | DAICO 合约 | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
 
-独立测试 profile 位于本机 `.daico-coursework` 目录，未提交到仓库；仓库中没有提交私钥、助记词、`.env` 或 `node_modules`。
+独立测试 profile 位于本机 `.daico-coursework` 目录，未提交到仓库；组员复现用的公开 Hardhat 测试助记词和建议 MetaMask 本地测试密码已整理到 `METAMASK_TESTING.md`。仓库中没有提交真实私钥文件、`.env`、浏览器 profile、MetaMask vault 或 `node_modules`。
 
 ## 命令验证
 
