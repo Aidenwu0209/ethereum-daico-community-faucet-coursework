@@ -2,7 +2,7 @@
 
 测试日期：2026-06-05  
 目标：使用真实 Chrome 补齐上一次未覆盖的 MetaMask 钱包连接、签名交易和前端链上交互测试。  
-结论：本次确认了 Chrome 和 MetaMask 扩展存在，但当前 Codex 会话未能获得可操作的 `@电脑` 桌面控制工具，Chrome 调试端口和系统截图自动化也没有正常可用，因此无法完成真实 MetaMask 授权弹窗和钱包签名交易测试。
+结论：本次确认了 Chrome 和 MetaMask 扩展存在，但当前 Codex 会话未能获得可操作的 `@电脑` 桌面控制工具，Chrome 调试端口和系统截图自动化也没有正常可用，因此无法完成真实 MetaMask 授权弹窗和钱包签名交易测试。2026-06-05 晚间继续测试时，Chrome 插件控制通道和 Node/Python 等开发运行时也出现启动层阻塞，暂时无法复跑 Hardhat/Vite 命令。
 
 ## 已确认事实
 
@@ -15,6 +15,24 @@
 | 本地前端服务 | 本次测试期间已确认 `http://127.0.0.1:5173/` 可用 |
 | Hardhat RPC | 本次测试期间已确认 `http://127.0.0.1:8545` 可用 |
 | 上一次链上测试 | `npx hardhat test` 已通过，`39 passing` |
+
+## 2026-06-05 继续测试记录
+
+用户要求继续使用 `@电脑` 补测后，重新做了以下检查：
+
+| 检查项 | 本轮结果 |
+| --- | --- |
+| `@电脑` 插件说明 | 已读取本地 `computer-use` skill，确认应提供截图、点击、输入等桌面操作能力 |
+| `tool_search` 查找 `computer-use` | 仍未暴露 screenshot/click/type/keyboard/mouse 等可调用 MCP 工具 |
+| Computer Use 后台服务 | 仍可看到 `SkyComputerUseService` 进程 |
+| Chrome 插件控制通道 | 通过 Chrome skill 的 `browser-client` 连接真实 Chrome，等待 120 秒后超时 |
+| Chrome/Computer Use 可操作性 | 仍无法读取 Chrome 屏幕、点击 MetaMask、输入或确认交易 |
+| 本地端口状态 | 本轮开始时 `8545`、`5173`、`9222` 均无监听 |
+| Node 运行时 | `node --version`、`node -e "console.log(process.version)"` 无输出挂起 |
+| Python / otool | `python3 --version`、`otool -L ...` 也出现无输出挂起 |
+| 挂起采样 | Node 进程采样显示主线程停在 `_dyld_start`，JS 尚未执行 |
+
+因此，本轮没有继续启动 Hardhat node、部署脚本或 Vite 前端，也没有重新执行 `npx hardhat test`。这不是测试断言失败，而是当前 macOS/Codex 会话的开发运行时启动异常。
 
 ## 尝试过的 Chrome 测试路径
 
