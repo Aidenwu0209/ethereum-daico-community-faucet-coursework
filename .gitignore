@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+cache/
+artifacts/
+coverage/
+typechain/
+typechain-types/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

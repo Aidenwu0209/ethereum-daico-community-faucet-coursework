@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>社区自治水龙头 DAICO</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>社区自治水龙头 DAICO</h1>
+          <p id="networkStatus" class="muted">等待连接钱包</p>
+        </div>
+        <button id="connectWallet" class="primary">连接 MetaMask 钱包</button>
+      </header>
+
+      <section id="alert" class="alert hidden"></section>
+
+      <section class="grid two">
+        <article class="panel">
+          <div class="panel-title">
+            <h2>钱包</h2>
+            <span id="walletBadge" class="badge">未连接</span>
+          </div>
+          <dl class="metrics">
+            <div>
+              <dt>地址</dt>
+              <dd id="walletAddress">-</dd>
+            </div>
+            <div>
+              <dt>ETH 余额</dt>
+              <dd id="ethBalance">-</dd>
+            </div>
+            <div>
+              <dt>CFT 余额</dt>
+              <dd id="tokenBalance">-</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="panel">
+          <div class="panel-title">
+            <h2>募资</h2>
+            <span id="fundingStatus" class="badge">-</span>
+          </div>
+          <dl class="metrics">
+            <div>
+              <dt>募资目标</dt>
+              <dd id="fundingGoal">-</dd>
+            </div>
+            <div>
+              <dt>已募集</dt>
+              <dd id="raisedAmount">-</dd>
+            </div>
+            <div>
+              <dt>剩余时间</dt>
+              <dd id="remainingTime">-</dd>
+            </div>
+          </dl>
+          <div class="progress-track">
+            <div id="fundingProgress" class="progress-bar"></div>
+          </div>
+          <div class="form-row">
+            <input id="investAmount" type="number" min="0" step="0.01" placeholder="ETH 数量" />
+            <button id="investButton">投资</button>
+            <button id="refundButton" class="secondary">退款</button>
+          </div>
+          <p id="userInvestment" class="muted">可退款投资：-</p>
+        </article>
+      </section>
+
+      <section class="grid two">
+        <article class="panel">
+          <div class="panel-title">
+            <h2>水龙头</h2>
+            <span id="faucetStatus" class="badge">-</span>
+          </div>
+          <dl class="metrics">
+            <div>
+              <dt>资金池</dt>
+              <dd id="faucetPool">-</dd>
+            </div>
+            <div>
+              <dt>单次领取</dt>
+              <dd id="faucetAmount">-</dd>
+            </div>
+            <div>
+              <dt>冷却时间</dt>
+              <dd id="faucetCooldown">-</dd>
+            </div>
+            <div>
+              <dt>下次可领取</dt>
+              <dd id="nextClaimTime">-</dd>
+            </div>
+          </dl>
+          <button id="claimFaucetButton">领取水龙头</button>
+        </article>
+
+        <article class="panel">
+          <div class="panel-title">
+            <h2>发起提案</h2>
+            <span id="proposalPower" class="badge">-</span>
+          </div>
+          <div class="form-stack">
+            <select id="proposalType">
+              <option value="0">修改水龙头单次领取量</option>
+              <option value="1">修改水龙头冷却时间</option>
+              <option value="2">开启或关闭水龙头</option>
+              <option value="3">项目方提取金库资金</option>
+            </select>
+            <input id="proposalDescription" type="text" placeholder="提案说明" />
+            <input id="proposalValue" type="text" placeholder="参数：CFT 数量 / 秒 / 0或1 / ETH 数量" />
+            <input id="proposalRecipient" type="text" placeholder="提款收款地址，非提款提案可留空" />
+            <button id="createProposalButton">发起提案</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>DAO 治理</h2>
+          <button id="refreshButton" class="secondary">刷新</button>
+        </div>
+        <div id="proposalList" class="proposal-list"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
