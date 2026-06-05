@@ -48,12 +48,24 @@ const PROPOSAL_TYPES = [
   "项目方提取金库资金"
 ];
 const FUNDING_STATUS = ["募资中", "募资失败", "募资成功", "已完成结算"];
+const HARDHAT_NETWORK_PARAMS = {
+  chainId: HARDHAT_CHAIN_ID,
+  chainName: "Hardhat Local",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18
+  },
+  rpcUrls: ["http://127.0.0.1:8545"],
+  blockExplorerUrls: []
+};
 
 let web3;
 let account = "";
 let tokenContract;
 let daicoContract;
 let currentChainId = "";
+let currentBlockTimestamp = BigInt(Math.floor(Date.now() / 1000));
 let lastSnapshot = {
   tokenBalance: 0n,
   fundingFinalized: false,
@@ -150,10 +162,11 @@ async function connectWallet() {
   }
 
   try {
+    els.connectWallet.textContent = "连接中...";
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0] || "";
+    currentChainId = await ensureHardhatNetwork();
     web3 = new Web3(window.ethereum);
-    currentChainId = await window.ethereum.request({ method: "eth_chainId" });
     tokenContract = new web3.eth.Contract(TOKEN_ABI, CONTRACT_ADDRESSES.token);
     daicoContract = new web3.eth.Contract(DAICO_ABI, CONTRACT_ADDRESSES.daico);
 
@@ -161,8 +174,37 @@ async function connectWallet() {
     await refreshAll();
     clearAlert();
   } catch (error) {
+    if (!account) {
+      setDisconnectedState();
+    }
     showAlert(`钱包连接失败：${error.message || error}`, "error");
   }
+}
+
+async function ensureHardhatNetwork() {
+  let chainId = await window.ethereum.request({ method: "eth_chainId" });
+  if (chainId?.toLowerCase() === HARDHAT_CHAIN_ID) {
+    return chainId;
+  }
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: HARDHAT_CHAIN_ID }]
+    });
+  } catch (error) {
+    if (error.code !== 4902) {
+      throw error;
+    }
+
+    await window.ethereum.request({
+      method: "wallet_addEthereumChain",
+      params: [HARDHAT_NETWORK_PARAMS]
+    });
+  }
+
+  chainId = await window.ethereum.request({ method: "eth_chainId" });
+  return chainId;
 }
 
 function attachWalletListeners() {
@@ -192,6 +234,7 @@ async function refreshAll() {
     return;
   }
 
+  await refreshChainClock();
   await Promise.all([
     refreshWallet(),
     refreshFunding(),
@@ -201,12 +244,21 @@ async function refreshAll() {
   updateButtons();
 }
 
+async function refreshChainClock() {
+  const latestBlock = await web3.eth.getBlock("latest");
+  currentBlockTimestamp = toBigInt(latestBlock.timestamp);
+}
+
 function setDisconnectedState() {
   els.walletBadge.textContent = "未连接";
   els.walletAddress.textContent = "-";
   els.ethBalance.textContent = "-";
   els.tokenBalance.textContent = "-";
   els.networkStatus.textContent = "等待连接钱包";
+  els.connectWallet.textContent = "连接 MetaMask 钱包";
+  els.fundingStatus.textContent = "待同步";
+  els.faucetStatus.textContent = "待同步";
+  els.proposalPower.textContent = "待同步";
   els.investButton.disabled = true;
   els.refundButton.disabled = true;
   els.claimFaucetButton.disabled = true;
@@ -221,6 +273,7 @@ async function refreshWallet() {
 
   lastSnapshot.tokenBalance = toBigInt(tokenBalance);
   els.walletBadge.textContent = networkReady() ? "已连接" : "网络错误";
+  els.connectWallet.textContent = networkReady() ? "同步钱包状态" : "切换 Hardhat 网络";
   els.walletAddress.textContent = shortAddress(account);
   els.ethBalance.textContent = `${fromWei(ethBalance, 4)} ETH`;
   els.tokenBalance.textContent = `${fromWei(tokenBalance, 4)} CFT`;
@@ -276,7 +329,7 @@ async function refreshFaucet() {
   const cooldown = toBigInt(info.cooldown ?? info[2]);
   const enabled = toBool(info.enabled ?? info[3]);
   const nextClaim = toBigInt(nextClaimTime);
-  const now = BigInt(Math.floor(Date.now() / 1000));
+  const now = currentBlockTimestamp;
 
   lastSnapshot.faucetEnabled = enabled;
   lastSnapshot.faucetPool = pool;
@@ -334,7 +387,7 @@ function renderProposal(proposal, voted, passed) {
   const canceled = toBool(proposalField(proposal, 11, "canceled"));
   const totalSupplyAtCreation = toBigInt(proposalField(proposal, 12, "totalSupplyAtCreation"));
   const totalVotes = forVotes + againstVotes;
-  const now = BigInt(Math.floor(Date.now() / 1000));
+  const now = currentBlockTimestamp;
   const ended = now >= endTime;
   const supportRate = totalVotes === 0n ? 0 : Number((forVotes * 10000n) / totalVotes) / 100;
   const participation = totalSupplyAtCreation === 0n ? 0 : Number((totalVotes * 10000n) / totalSupplyAtCreation) / 100;
@@ -409,7 +462,7 @@ function updateButtons() {
     && lastSnapshot.fundingFinalized
     && !lastSnapshot.fundingSuccessful
     && lastSnapshot.investment > 0n;
-  const now = BigInt(Math.floor(Date.now() / 1000));
+  const now = currentBlockTimestamp;
   const canClaim = ready
     && lastSnapshot.fundingFinalized
     && lastSnapshot.fundingSuccessful
@@ -518,7 +571,9 @@ if (!hasDeploymentConfig()) {
 setInterval(() => {
   updateButtons();
   if (account) {
-    refreshFunding().then(updateButtons).catch(() => {});
-    refreshFaucet().then(updateButtons).catch(() => {});
+    refreshChainClock()
+      .then(() => Promise.all([refreshFunding(), refreshFaucet()]))
+      .then(updateButtons)
+      .catch(() => {});
   }
 }, 30_000);
