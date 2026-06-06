@@ -69,7 +69,7 @@ let tokenContract;
 let daicoContract;
 let currentChainId = "";
 let currentBlockTimestamp = BigInt(Math.floor(Date.now() / 1000));
-let lastSnapshot = {
+const emptySnapshot = () => ({
   tokenBalance: 0n,
   fundingGoal: 0n,
   raisedAmount: 0n,
@@ -83,7 +83,8 @@ let lastSnapshot = {
   nextClaimTime: 0n,
   totalSupply: 0n,
   canCreateProposal: false
-};
+});
+let lastSnapshot = emptySnapshot();
 
 function hasDeploymentConfig() {
   return Boolean(CONTRACT_ADDRESSES.token && CONTRACT_ADDRESSES.daico && TOKEN_ABI.length && DAICO_ABI.length);
@@ -417,12 +418,7 @@ async function connectWallet() {
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     account = accounts[0] || "";
     currentChainId = await ensureHardhatNetwork();
-    web3 = new Web3(window.ethereum);
-    tokenContract = new web3.eth.Contract(TOKEN_ABI, CONTRACT_ADDRESSES.token);
-    daicoContract = new web3.eth.Contract(DAICO_ABI, CONTRACT_ADDRESSES.daico);
-
-    attachWalletListeners();
-    await refreshAll();
+    await syncWalletSession();
     clearAlert();
   } catch (error) {
     if (!account) {
@@ -467,12 +463,12 @@ function attachWalletListeners() {
 
 async function handleAccountsChanged(accounts) {
   account = accounts[0] || "";
-  await refreshAll();
+  await syncWalletSession();
 }
 
 async function handleChainChanged(chainId) {
   currentChainId = chainId;
-  await refreshAll();
+  await syncWalletSession({ preserveAccount: true });
 }
 
 function networkReady() {
@@ -480,8 +476,15 @@ function networkReady() {
 }
 
 async function refreshAll() {
-  if (!account || !web3 || !tokenContract || !daicoContract) {
+  if (!account) {
     setDisconnectedState();
+    return;
+  }
+  if (!web3 || !tokenContract || !daicoContract) {
+    initializeContracts();
+  }
+  if (!networkReady()) {
+    setNetworkMismatchState();
     return;
   }
 
@@ -502,7 +505,57 @@ async function refreshChainClock() {
   currentBlockTimestamp = toBigInt(latestBlock.timestamp);
 }
 
+function initializeContracts() {
+  if (!web3 && window.ethereum) {
+    web3 = new Web3(window.ethereum);
+  }
+  if (web3 && !tokenContract) {
+    tokenContract = new web3.eth.Contract(TOKEN_ABI, CONTRACT_ADDRESSES.token);
+  }
+  if (web3 && !daicoContract) {
+    daicoContract = new web3.eth.Contract(DAICO_ABI, CONTRACT_ADDRESSES.daico);
+  }
+}
+
+async function syncWalletSession({ preserveAccount = false } = {}) {
+  if (!window.ethereum || !hasDeploymentConfig()) {
+    setDisconnectedState();
+    return;
+  }
+
+  try {
+    const [accounts, chainId] = await Promise.all([
+      preserveAccount ? Promise.resolve(account ? [account] : []) : window.ethereum.request({ method: "eth_accounts" }),
+      window.ethereum.request({ method: "eth_chainId" })
+    ]);
+
+    account = accounts[0] || "";
+    currentChainId = chainId || "";
+
+    if (!account) {
+      setDisconnectedState();
+      return;
+    }
+
+    initializeContracts();
+    attachWalletListeners();
+
+    if (!networkReady()) {
+      setNetworkMismatchState();
+      return;
+    }
+
+    await refreshAll();
+  } catch (error) {
+    showAlert(`钱包状态同步失败：${error.message || error}`, "error");
+    if (account && currentChainId && !networkReady()) {
+      setNetworkMismatchState();
+    }
+  }
+}
+
 function setDisconnectedState() {
+  lastSnapshot = emptySnapshot();
   els.walletBadge.textContent = "未连接";
   els.walletAddress.textContent = "-";
   els.ethBalance.textContent = "-";
@@ -510,14 +563,48 @@ function setDisconnectedState() {
   els.networkStatus.textContent = "等待连接钱包";
   els.connectWallet.textContent = "连接 MetaMask 钱包";
   els.fundingStatus.textContent = "待同步";
+  els.fundingGoal.textContent = "-";
+  els.raisedAmount.textContent = "-";
+  els.remainingTime.textContent = "-";
+  els.fundingProgress.style.width = "0%";
   els.faucetStatus.textContent = "待同步";
+  els.faucetPool.textContent = "-";
+  els.faucetAmount.textContent = "-";
+  els.faucetCooldown.textContent = "-";
+  els.nextClaimTime.textContent = "-";
   els.proposalPower.textContent = "待同步";
   els.userInvestment.textContent = "个人投资：-";
+  els.proposalList.innerHTML = `<p class="muted">暂无提案</p>`;
   els.investButton.disabled = true;
   els.finalizeButton.disabled = true;
   els.refundButton.disabled = true;
   els.claimFaucetButton.disabled = true;
   els.createProposalButton.disabled = true;
+  updateButtons();
+}
+
+function setNetworkMismatchState() {
+  lastSnapshot = emptySnapshot();
+  els.walletBadge.textContent = "网络错误";
+  els.walletAddress.textContent = shortAddress(account);
+  els.ethBalance.textContent = "-";
+  els.tokenBalance.textContent = "-";
+  els.networkStatus.textContent = `请切换到 Hardhat 本地网络 ${HARDHAT_CHAIN_ID}`;
+  els.connectWallet.textContent = "切换 Hardhat 网络";
+  els.fundingStatus.textContent = "网络错误";
+  els.fundingGoal.textContent = "-";
+  els.raisedAmount.textContent = "-";
+  els.remainingTime.textContent = "-";
+  els.fundingProgress.style.width = "0%";
+  els.userInvestment.textContent = "个人投资：-";
+  els.faucetStatus.textContent = "网络错误";
+  els.faucetPool.textContent = "-";
+  els.faucetAmount.textContent = "-";
+  els.faucetCooldown.textContent = "-";
+  els.nextClaimTime.textContent = "请先切换到 Hardhat 本地网络";
+  els.proposalPower.textContent = "网络错误";
+  els.proposalList.innerHTML = `<p class="muted">请切换到 Hardhat 本地网络后查看 DAO 提案。</p>`;
+  updateButtons();
 }
 
 async function refreshWallet() {
