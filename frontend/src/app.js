@@ -49,6 +49,7 @@ const PROPOSAL_TYPES = [
   "项目方提取金库资金"
 ];
 const FUNDING_STATUS = ["募资中", "募资失败", "募资成功", "已完成结算"];
+const MIN_TOKEN_TO_CLAIM = 1000000000000000000n;
 const HARDHAT_NETWORK_PARAMS = {
   chainId: HARDHAT_CHAIN_ID,
   chainName: "Hardhat Local",
@@ -181,6 +182,68 @@ function refundDisabledReason(connected, ready) {
   return "";
 }
 
+function formatFaucetStatus(enabled) {
+  if (!lastSnapshot.fundingFinalized) {
+    return "待结算";
+  }
+  if (!lastSnapshot.fundingSuccessful) {
+    return "募资失败";
+  }
+  return enabled ? "已开启" : "已关闭";
+}
+
+function formatNextClaimHint(nextClaim, now) {
+  if (!lastSnapshot.fundingFinalized) {
+    return "募资成功结算后开放";
+  }
+  if (!lastSnapshot.fundingSuccessful) {
+    return "募资失败，不开放";
+  }
+  if (!lastSnapshot.faucetEnabled) {
+    return "水龙头已关闭";
+  }
+  if (lastSnapshot.tokenBalance < MIN_TOKEN_TO_CLAIM) {
+    return "至少持有 1 CFT 后可领取";
+  }
+  if (lastSnapshot.faucetPool < lastSnapshot.faucetAmount) {
+    return "资金池不足";
+  }
+  if (nextClaim > now) {
+    return `${new Date(Number(nextClaim) * 1000).toLocaleString("zh-CN")}，剩余 ${formatSeconds(nextClaim - now)}`;
+  }
+  return "现在可领取";
+}
+
+function faucetDisabledReason(connected, ready, now) {
+  if (!connected) {
+    return "请先连接 MetaMask 钱包";
+  }
+  if (!ready) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (!lastSnapshot.fundingFinalized) {
+    return lastSnapshot.fundingRemainingTime === 0n
+      ? "请先点击结算；只有募资结算成功后才能领取"
+      : "募资尚未结算；水龙头需募资成功并结算后开放";
+  }
+  if (!lastSnapshot.fundingSuccessful) {
+    return "募资失败，水龙头不开放";
+  }
+  if (!lastSnapshot.faucetEnabled) {
+    return "水龙头已被 DAO 关闭";
+  }
+  if (lastSnapshot.tokenBalance < MIN_TOKEN_TO_CLAIM) {
+    return "至少持有 1 CFT 才能领取水龙头";
+  }
+  if (lastSnapshot.faucetPool < lastSnapshot.faucetAmount) {
+    return "水龙头资金池不足";
+  }
+  if (now < lastSnapshot.nextClaimTime) {
+    return `冷却中，剩余 ${formatSeconds(lastSnapshot.nextClaimTime - now)}`;
+  }
+  return "";
+}
+
 function setButtonState(button, enabled, enabledTitle, disabledTitle) {
   button.disabled = !enabled;
   button.title = enabled ? enabledTitle : disabledTitle;
@@ -277,7 +340,9 @@ async function refreshAll() {
   await refreshChainClock();
   await Promise.all([
     refreshWallet(),
-    refreshFunding(),
+    refreshFunding()
+  ]);
+  await Promise.all([
     refreshFaucet(),
     refreshGovernance()
   ]);
@@ -379,13 +444,11 @@ async function refreshFaucet() {
   lastSnapshot.faucetAmount = amount;
   lastSnapshot.nextClaimTime = nextClaim;
 
-  els.faucetStatus.textContent = enabled ? "已开启" : "已关闭";
+  els.faucetStatus.textContent = formatFaucetStatus(enabled);
   els.faucetPool.textContent = `${fromWei(pool, 4)} CFT`;
   els.faucetAmount.textContent = `${fromWei(amount, 4)} CFT`;
   els.faucetCooldown.textContent = formatSeconds(cooldown);
-  els.nextClaimTime.textContent = nextClaim > now
-    ? `${new Date(Number(nextClaim) * 1000).toLocaleString("zh-CN")}，剩余 ${formatSeconds(nextClaim - now)}`
-    : "现在可领取";
+  els.nextClaimTime.textContent = formatNextClaimHint(nextClaim, now);
 }
 
 async function refreshGovernance() {
@@ -513,7 +576,7 @@ function updateButtons() {
     && lastSnapshot.fundingFinalized
     && lastSnapshot.fundingSuccessful
     && lastSnapshot.faucetEnabled
-    && lastSnapshot.tokenBalance >= 1000000000000000000n
+    && lastSnapshot.tokenBalance >= MIN_TOKEN_TO_CLAIM
     && lastSnapshot.faucetPool >= lastSnapshot.faucetAmount
     && now >= lastSnapshot.nextClaimTime;
 
@@ -539,7 +602,7 @@ function updateButtons() {
     els.claimFaucetButton,
     canClaim,
     "领取水龙头 CFT",
-    ready ? "领取条件未满足：需募资成功、冷却结束且资金池充足" : "请先连接钱包并切换到 Hardhat 本地网络"
+    faucetDisabledReason(connected, ready, now)
   );
   setButtonState(
     els.createProposalButton,
@@ -649,7 +712,8 @@ setInterval(() => {
   updateButtons();
   if (account) {
     refreshChainClock()
-      .then(() => Promise.all([refreshFunding(), refreshFaucet()]))
+      .then(refreshFunding)
+      .then(refreshFaucet)
       .then(updateButtons)
       .catch(() => {});
   }
