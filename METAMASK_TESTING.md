@@ -93,7 +93,7 @@ http://127.0.0.1:5173/
 1. 在 MetaMask 中选择 `Hardhat Local` 网络。
 2. 连接前端钱包。
 3. 投资 `10 ETH`，确认 MetaMask 交易。
-4. 等募资期结束后调用结算；本地测试可用 Hardhat console 或测试脚本推进时间。
+4. 等募资期结束后，点击前端募资模块中的“结算”按钮调用 `finalizeFunding()`；本地测试可用 Hardhat console 或测试脚本推进时间。
 5. 领取水龙头。
 6. 发起 DAO 提案，例如把水龙头单次领取量改为 `30 CFT`。
 7. 投支持票。
@@ -103,8 +103,8 @@ http://127.0.0.1:5173/
 已完成的 Chrome + MetaMask 验证记录见：
 
 ```text
-reports/chrome-test/README.md
-reports/chrome-test/tech-ui-screenshot-style-one-screen.png
+reports/full-chrome-metamask-test/社区自治水龙头DAICO_完整测试报告.docx
+reports/full-chrome-metamask-test/screenshots/
 ```
 
 ## 注意事项

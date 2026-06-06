@@ -22,6 +22,7 @@ const els = {
   fundingProgress: document.getElementById("fundingProgress"),
   investAmount: document.getElementById("investAmount"),
   investButton: document.getElementById("investButton"),
+  finalizeButton: document.getElementById("finalizeButton"),
   refundButton: document.getElementById("refundButton"),
   userInvestment: document.getElementById("userInvestment"),
   faucetStatus: document.getElementById("faucetStatus"),
@@ -70,6 +71,7 @@ let lastSnapshot = {
   tokenBalance: 0n,
   fundingFinalized: false,
   fundingSuccessful: false,
+  fundingRemainingTime: 0n,
   investment: 0n,
   faucetEnabled: false,
   faucetPool: 0n,
@@ -260,6 +262,7 @@ function setDisconnectedState() {
   els.faucetStatus.textContent = "待同步";
   els.proposalPower.textContent = "待同步";
   els.investButton.disabled = true;
+  els.finalizeButton.disabled = true;
   els.refundButton.disabled = true;
   els.claimFaucetButton.disabled = true;
   els.createProposalButton.disabled = true;
@@ -307,6 +310,7 @@ async function refreshFunding() {
 
   lastSnapshot.fundingFinalized = toBool(fundingFinalized);
   lastSnapshot.fundingSuccessful = toBool(fundingSuccessful);
+  lastSnapshot.fundingRemainingTime = toBigInt(remainingTime);
   lastSnapshot.investment = toBigInt(investment);
   els.fundingGoal.textContent = `${fromWei(fundingGoal, 2)} ETH`;
   els.raisedAmount.textContent = `${fromWei(raisedAmount, 4)} ETH (${Math.min(percentage, 100).toFixed(2)}%)`;
@@ -458,6 +462,9 @@ function updateButtons() {
   const ready = connected && networkReady();
   const investAmount = Number(els.investAmount.value || 0);
   const canInvest = ready && !lastSnapshot.fundingFinalized && investAmount > 0;
+  const canFinalize = ready
+    && !lastSnapshot.fundingFinalized
+    && lastSnapshot.fundingRemainingTime === 0n;
   const canRefund = ready
     && lastSnapshot.fundingFinalized
     && !lastSnapshot.fundingSuccessful
@@ -472,6 +479,7 @@ function updateButtons() {
     && now >= lastSnapshot.nextClaimTime;
 
   els.investButton.disabled = !canInvest;
+  els.finalizeButton.disabled = !canFinalize;
   els.refundButton.disabled = !canRefund;
   els.claimFaucetButton.disabled = !canClaim;
   els.createProposalButton.disabled = !ready || !lastSnapshot.canCreateProposal;
@@ -492,6 +500,10 @@ async function sendInvest() {
 
 async function sendRefund() {
   await sendTransaction("退款", () => daicoContract.methods.refund().send({ from: account }));
+}
+
+async function sendFinalizeFunding() {
+  await sendTransaction("募资结算", () => daicoContract.methods.finalizeFunding().send({ from: account }));
 }
 
 async function sendClaimFaucet() {
@@ -559,6 +571,7 @@ async function sendTransaction(label, buildTx) {
 els.connectWallet.addEventListener("click", connectWallet);
 els.investAmount.addEventListener("input", updateButtons);
 els.investButton.addEventListener("click", sendInvest);
+els.finalizeButton.addEventListener("click", sendFinalizeFunding);
 els.refundButton.addEventListener("click", sendRefund);
 els.claimFaucetButton.addEventListener("click", sendClaimFaucet);
 els.createProposalButton.addEventListener("click", sendCreateProposal);
