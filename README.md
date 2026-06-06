@@ -39,6 +39,16 @@ npx hardhat test
 
 测试覆盖部署、投资、退款、水龙头领取、冷却、提案门槛、投票、重复投票、提案执行、金库提款、ERC20 标准接口和异常回滚。
 
+## 完整测试报告
+
+本轮重新删除旧版浏览器测试证据后，已从头运行安装、编译、合约测试、部署、前端构建和 Chrome 页面 E2E 流程。详细 Word 报告、命令日志和每步截图位于：
+
+```text
+reports/full-chrome-metamask-test/社区自治水龙头DAICO_完整测试报告.docx
+```
+
+报告内记录了 Chrome/Computer Use 测试过程、39 个 Hardhat 测试用例结果、MetaMask 扩展页自动化限制，以及连接、募资、结算、水龙头、DAO 提案、投票和执行的截图证据。
+
 ## MetaMask 组员测试配置
 
 Chrome + MetaMask 本地测试所需的测试密码、Hardhat Local 网络参数、公开测试助记词、账户地址和手工操作流程已整理在：

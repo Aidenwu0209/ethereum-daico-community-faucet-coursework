@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>社区自治水龙头 DAICO - E2E Provider</title>
+    <script>
+      (() => {
+        const account = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+        const listeners = {};
+        let nextId = 1;
+
+        async function rpc(method, params = []) {
+          const response = await fetch("http://127.0.0.1:8545", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: nextId++,
+              method,
+              params
+            })
+          });
+          const payload = await response.json();
+          if (payload.error) {
+            const error = new Error(payload.error.message);
+            error.code = payload.error.code;
+            throw error;
+          }
+          return payload.result;
+        }
+
+        window.ethereum = {
+          isMetaMask: true,
+          selectedAddress: account,
+          chainId: "0x7a69",
+          request({ method, params = [] }) {
+            if (method === "eth_requestAccounts" || method === "eth_accounts") {
+              return Promise.resolve([account]);
+            }
+            if (method === "eth_chainId") {
+              return Promise.resolve("0x7a69");
+            }
+            if (method === "net_version") {
+              return Promise.resolve("31337");
+            }
+            if (method === "wallet_switchEthereumChain" || method === "wallet_addEthereumChain") {
+              return Promise.resolve(null);
+            }
+            if (method === "wallet_requestPermissions") {
+              return Promise.resolve([{ parentCapability: "eth_accounts" }]);
+            }
+            return rpc(method, params);
+          },
+          on(event, handler) {
+            listeners[event] ||= new Set();
+            listeners[event].add(handler);
+          },
+          removeListener(event, handler) {
+            listeners[event]?.delete(handler);
+          }
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-group">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>社区自治水龙头 DAICO</h1>
+            <p id="networkStatus" class="muted">等待连接钱包</p>
+          </div>
+        </div>
+        <div class="top-metrics" aria-label="本地链状态">
+          <div>
+            <span>链 ID</span>
+            <strong>31337</strong>
+          </div>
+          <div>
+            <span>RPC</span>
+            <strong>127.0.0.1:8545</strong>
+          </div>
+        </div>
+        <button id="connectWallet" class="primary">连接 MetaMask 钱包</button>
+      </header>
+
+      <section id="alert" class="alert hidden"></section>
+
+      <div class="workspace">
+        <aside class="side-rail" aria-label="协议导航">
+          <nav class="nav-stack">
+            <a class="nav-item active" href="#walletBadge"><span></span>仪表盘</a>
+            <a class="nav-item" href="#claimFaucetButton"><span></span>水龙头</a>
+            <a class="nav-item" href="#createProposalButton"><span></span>发起提案</a>
+            <a class="nav-item" href="#proposalList"><span></span>DAO 治理</a>
+          </nav>
+          <div class="network-card">
+            <span class="status-dot"></span>
+            <strong>Hardhat Local</strong>
+            <p>http://127.0.0.1:8545</p>
+          </div>
+        </aside>
+
+        <section class="main-board">
+          <article class="panel wallet-panel">
+            <div class="panel-title">
+              <h2>钱包</h2>
+              <span id="walletBadge" class="badge">未连接</span>
+            </div>
+            <dl class="metrics">
+              <div>
+                <dt>地址</dt>
+                <dd id="walletAddress">-</dd>
+              </div>
+              <div>
+                <dt>ETH 余额</dt>
+                <dd id="ethBalance">-</dd>
+              </div>
+              <div>
+                <dt>CFT 余额</dt>
+                <dd id="tokenBalance">-</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="panel accent-panel funding-panel">
+            <div class="panel-title">
+              <h2>募资</h2>
+              <span id="fundingStatus" class="badge">待同步</span>
+            </div>
+            <dl class="metrics">
+              <div>
+                <dt>募资目标</dt>
+                <dd id="fundingGoal">-</dd>
+              </div>
+              <div>
+                <dt>已募集</dt>
+                <dd id="raisedAmount">-</dd>
+              </div>
+              <div>
+                <dt>剩余时间</dt>
+                <dd id="remainingTime">-</dd>
+              </div>
+            </dl>
+            <div class="progress-track">
+              <div id="fundingProgress" class="progress-bar"></div>
+            </div>
+            <div class="form-row">
+              <input id="investAmount" type="number" min="0" step="0.01" placeholder="ETH 数量" />
+              <button id="investButton">投资</button>
+              <button id="refundButton" class="secondary">退款</button>
+            </div>
+            <p id="userInvestment" class="muted">可退款投资：-</p>
+          </article>
+
+          <article class="panel faucet-panel">
+            <div class="panel-title">
+              <h2>水龙头</h2>
+              <span id="faucetStatus" class="badge">待同步</span>
+            </div>
+            <dl class="metrics">
+              <div>
+                <dt>资金池</dt>
+                <dd id="faucetPool">-</dd>
+              </div>
+              <div>
+                <dt>单次领取</dt>
+                <dd id="faucetAmount">-</dd>
+              </div>
+              <div>
+                <dt>冷却时间</dt>
+                <dd id="faucetCooldown">-</dd>
+              </div>
+              <div>
+                <dt>下次可领取</dt>
+                <dd id="nextClaimTime">-</dd>
+              </div>
+            </dl>
+            <button id="claimFaucetButton">领取水龙头</button>
+          </article>
+
+          <article class="panel proposal-panel">
+            <div class="panel-title">
+              <h2>发起提案</h2>
+              <span id="proposalPower" class="badge">待同步</span>
+            </div>
+            <div class="form-stack">
+              <select id="proposalType">
+                <option value="0">修改水龙头单次领取量</option>
+                <option value="1">修改水龙头冷却时间</option>
+                <option value="2">开启或关闭水龙头</option>
+                <option value="3">项目方提取金库资金</option>
+              </select>
+              <input id="proposalDescription" type="text" placeholder="提案说明" />
+              <input id="proposalValue" type="text" placeholder="参数：CFT 数量 / 秒 / 0或1 / ETH 数量" />
+              <input id="proposalRecipient" type="text" placeholder="提款收款地址，非提款提案可留空" />
+              <button id="createProposalButton">发起提案</button>
+            </div>
+          </article>
+
+          <section class="panel dao-panel">
+            <div class="panel-title">
+              <h2>DAO 治理</h2>
+              <button id="refreshButton" class="secondary">刷新</button>
+            </div>
+            <div id="proposalList" class="proposal-list"></div>
+          </section>
+        </section>
+
+        <aside class="status-rail" aria-label="本地测试环境">
+          <div class="rail-card">
+            <span class="status-dot"></span>
+            <h2>执行环境</h2>
+            <dl>
+              <div>
+                <dt>网络</dt>
+                <dd>Hardhat 本地网络</dd>
+              </div>
+              <div>
+                <dt>合约</dt>
+                <dd>DAICO / CFT</dd>
+              </div>
+              <div>
+                <dt>钱包</dt>
+                <dd>MetaMask EIP-1193 测试 Provider</dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script type="module" src="http://127.0.0.1:5173/src/app.js"></script>
+  </body>
+</html>

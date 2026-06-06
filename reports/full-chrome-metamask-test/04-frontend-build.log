@@ -1,0 +1,18 @@
+
+> community-faucet-daico-frontend@1.0.0 build
+> vite build
+
+vite v5.4.11 building for production...
+transforming...
+✓ 582 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   6.04 kB │ gzip:   1.80 kB
+dist/assets/index-BszidWS1.css   10.38 kB │ gzip:   3.02 kB
+dist/assets/index-DZLLKuxm.js   564.25 kB │ gzip: 166.47 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 926ms
