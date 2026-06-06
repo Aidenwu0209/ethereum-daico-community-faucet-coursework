@@ -885,7 +885,7 @@ async function sendCreateProposal() {
   const proposalType = Number(els.proposalType.value);
   const description = els.proposalDescription.value.trim();
   const rawValue = els.proposalValue.value.trim();
-  const recipient = els.proposalRecipient.value.trim() || ZERO_ADDRESS;
+  const rawRecipient = els.proposalRecipient.value.trim();
 
   if (!description) {
     showAlert("提案说明不能为空。", "error");
@@ -893,15 +893,38 @@ async function sendCreateProposal() {
   }
 
   let newValue;
+  let recipient = ZERO_ADDRESS;
   try {
     if (proposalType === 0) {
-      newValue = web3.utils.toWei(rawValue || "0", "ether");
+      if (!rawValue || Number(rawValue) <= 0) {
+        showAlert("水龙头单次领取量必须大于 0 CFT。", "error");
+        return;
+      }
+      newValue = web3.utils.toWei(rawValue, "ether");
     } else if (proposalType === 1) {
-      newValue = String(Number(rawValue || "0"));
+      const cooldown = Number(rawValue);
+      if (!Number.isInteger(cooldown) || cooldown <= 0 || cooldown > 7 * 24 * 60 * 60) {
+        showAlert("冷却时间必须是 1 到 604800 之间的整数秒。", "error");
+        return;
+      }
+      newValue = String(cooldown);
     } else if (proposalType === 2) {
-      newValue = rawValue === "1" ? "1" : "0";
+      if (rawValue !== "0" && rawValue !== "1") {
+        showAlert("水龙头开关参数只能填写 0 或 1。", "error");
+        return;
+      }
+      newValue = rawValue;
     } else {
-      newValue = web3.utils.toWei(rawValue || "0", "ether");
+      if (!rawValue || Number(rawValue) <= 0) {
+        showAlert("提款 ETH 数量必须大于 0。", "error");
+        return;
+      }
+      if (!web3.utils.isAddress(rawRecipient) || rawRecipient === ZERO_ADDRESS) {
+        showAlert("提款收款地址必须是有效的非零地址。", "error");
+        return;
+      }
+      newValue = web3.utils.toWei(rawValue, "ether");
+      recipient = rawRecipient;
     }
   } catch (error) {
     showAlert(`提案参数无效：${error.message || error}`, "error");
