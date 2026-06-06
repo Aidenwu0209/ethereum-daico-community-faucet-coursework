@@ -1,0 +1,9 @@
+Deploying with account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Account balance: 10000.0 ETH
+CommunityToken: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+CommunityDAICO: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+Funding goal: 10.0 ETH
+Funding duration: 604800 seconds
+Token rate: 1000 CFT per ETH
+Faucet claim amount: 25.0 CFT
+Frontend contract config written to: /Users/wu/Desktop/wu/AAaabaidu/《以太坊 DAICO 开发》考查/frontend/src/contracts.js

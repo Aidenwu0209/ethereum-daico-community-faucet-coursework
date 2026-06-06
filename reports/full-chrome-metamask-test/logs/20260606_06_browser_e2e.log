@@ -1,0 +1,17 @@
+screenshot: 20260606_01_initial_disconnected.png
+screenshot: 20260606_02_wallet_connected.png
+screenshot: 20260606_03_invest_success.png
+screenshot: 20260606_04_finalize_ready.png
+screenshot: 20260606_05_funding_finalized.png
+screenshot: 20260606_06_faucet_claim_success.png
+screenshot: 20260606_07_proposal_created.png
+screenshot: 20260606_08_vote_success.png
+screenshot: 20260606_09_proposal_executed.png
+final-state: {
+  "walletBadge": "已连接",
+  "raisedAmount": "10 ETH (100.00%)",
+  "fundingStatus": "已完成结算 / 成功",
+  "faucetStatus": "已开启",
+  "faucetAmount": "30 CFT",
+  "proposalList": "#1 修改水龙头单次领取量 浏览器测试：调整水龙头领取量 支持：10,025 CFT 反对：0 CFT 支持率：100.00% 参与率：90.22% 剩余：已结束 结果：已通过 状态：已执行 参数：30 CFT 收款：- 支持反对执行提案"
+}

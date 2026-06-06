@@ -1,0 +1,52 @@
+
+
+  CommunityToken
+    ✔ deploys with initialized ERC20 metadata and minter (253ms)
+    ✔ rejects minting by non-minter accounts
+
+  CommunityDAICO funding
+    ✔ deploys with initialized DAICO parameters
+    ✔ accepts investment, records ETH, and mints investor and faucet tokens
+    ✔ rejects zero-value investments
+    ✔ rejects investment after the funding period ends
+    ✔ rejects finalization before the funding deadline
+    ✔ previews failed funding status after deadline before finalization
+    ✔ previews successful funding status after deadline before finalization
+    ✔ finalizes failed funding, closes minting, and leaves treasury empty
+    ✔ refunds failed investors and clears investment records
+    ✔ rejects repeated refunds
+    ✔ rejects refunds after successful funding
+    ✔ finalizes successful funding, closes minting, and records treasury
+    ✔ rejects repeated finalization
+
+  CommunityDAICO faucet
+    ✔ allows a token holder to claim faucet tokens after successful funding
+    ✔ rejects faucet claims before funding is successfully finalized
+    ✔ rejects faucet claims by non-token holders
+    ✔ rejects repeated faucet claims during cooldown
+    ✔ allows a second faucet claim after cooldown passes
+
+  CommunityDAICO DAO governance
+    ✔ lets the project owner create a proposal
+    ✔ lets a holder above the 5 percent threshold create a proposal
+    ✔ rejects proposal creation below the 5 percent holder threshold
+    ✔ validates proposal input parameters
+    ✔ records support votes and voting status
+    ✔ records against votes
+    ✔ rejects duplicate voting by the same address
+    ✔ rejects voting by accounts without tokens
+    ✔ rejects proposal execution before the voting period ends
+    ✔ executes a passed faucet amount proposal
+    ✔ executes a passed faucet cooldown proposal
+    ✔ executes a passed toggle proposal and disables faucet claims
+    ✔ rejects execution of a proposal that misses quorum
+    ✔ rejects execution of a proposal with majority against votes
+    ✔ executes treasury withdrawals only after a DAO proposal passes
+    ✔ rejects treasury withdrawals larger than the available treasury
+    ✔ rejects repeated proposal execution
+    ✔ allows proposal cancellation and blocks later voting
+    ✔ keeps standard ERC20 approve and transferFrom behavior available
+
+
+  39 passing (347ms)
+
