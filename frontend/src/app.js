@@ -148,6 +148,44 @@ function formatSeconds(rawSeconds) {
   return `${minutes} 分钟`;
 }
 
+function formatInvestmentHint(investment) {
+  const amount = `${fromWei(investment, 4)} ETH`;
+  if (!lastSnapshot.fundingFinalized) {
+    if (lastSnapshot.fundingRemainingTime === 0n) {
+      return `个人投资：${amount}；请先结算募资，只有结算失败后才能退款`;
+    }
+    return `个人投资：${amount}；募资进行中，退款需等募资期结束并结算失败`;
+  }
+  if (lastSnapshot.fundingSuccessful) {
+    return `个人投资：${amount}；募资成功后不可退款`;
+  }
+  return `可退款投资：${amount}`;
+}
+
+function refundDisabledReason(connected, ready) {
+  if (!connected) {
+    return "请先连接 MetaMask 钱包";
+  }
+  if (!ready) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (!lastSnapshot.fundingFinalized) {
+    return "退款只在募资期结束、结算为失败后开放";
+  }
+  if (lastSnapshot.fundingSuccessful) {
+    return "募资已成功，投资进入项目金库，不能退款";
+  }
+  if (lastSnapshot.investment === 0n) {
+    return "当前钱包没有可退款投资";
+  }
+  return "";
+}
+
+function setButtonState(button, enabled, enabledTitle, disabledTitle) {
+  button.disabled = !enabled;
+  button.title = enabled ? enabledTitle : disabledTitle;
+}
+
 function proposalField(proposal, index, name) {
   return proposal[name] ?? proposal[index];
 }
@@ -261,6 +299,7 @@ function setDisconnectedState() {
   els.fundingStatus.textContent = "待同步";
   els.faucetStatus.textContent = "待同步";
   els.proposalPower.textContent = "待同步";
+  els.userInvestment.textContent = "个人投资：-";
   els.investButton.disabled = true;
   els.finalizeButton.disabled = true;
   els.refundButton.disabled = true;
@@ -319,7 +358,7 @@ async function refreshFunding() {
     ? `${FUNDING_STATUS[Number(fundingStatus)]} / ${lastSnapshot.fundingSuccessful ? "成功" : "失败"}`
     : FUNDING_STATUS[Number(fundingStatus)] || "-";
   els.fundingProgress.style.width = `${Math.min(percentage, 100)}%`;
-  els.userInvestment.textContent = `可退款投资：${fromWei(investment, 4)} ETH`;
+  els.userInvestment.textContent = formatInvestmentHint(investment);
 }
 
 async function refreshFaucet() {
@@ -478,11 +517,36 @@ function updateButtons() {
     && lastSnapshot.faucetPool >= lastSnapshot.faucetAmount
     && now >= lastSnapshot.nextClaimTime;
 
-  els.investButton.disabled = !canInvest;
-  els.finalizeButton.disabled = !canFinalize;
-  els.refundButton.disabled = !canRefund;
-  els.claimFaucetButton.disabled = !canClaim;
-  els.createProposalButton.disabled = !ready || !lastSnapshot.canCreateProposal;
+  setButtonState(
+    els.investButton,
+    canInvest,
+    "向 DAICO 合约投资 ETH 并获得 CFT",
+    ready ? "请输入大于 0 的投资金额，或等待当前募资状态允许投资" : "请先连接钱包并切换到 Hardhat 本地网络"
+  );
+  setButtonState(
+    els.finalizeButton,
+    canFinalize,
+    "结算募资状态",
+    ready ? "募资期尚未结束，暂不能结算" : "请先连接钱包并切换到 Hardhat 本地网络"
+  );
+  setButtonState(
+    els.refundButton,
+    canRefund,
+    "退回失败募资中的个人投资",
+    refundDisabledReason(connected, ready)
+  );
+  setButtonState(
+    els.claimFaucetButton,
+    canClaim,
+    "领取水龙头 CFT",
+    ready ? "领取条件未满足：需募资成功、冷却结束且资金池充足" : "请先连接钱包并切换到 Hardhat 本地网络"
+  );
+  setButtonState(
+    els.createProposalButton,
+    ready && lastSnapshot.canCreateProposal,
+    "创建 DAO 治理提案",
+    ready ? "CFT 余额未达到发起提案门槛" : "请先连接钱包并切换到 Hardhat 本地网络"
+  );
 }
 
 async function sendInvest() {
