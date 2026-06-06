@@ -38,7 +38,8 @@ const els = {
   proposalRecipient: document.getElementById("proposalRecipient"),
   createProposalButton: document.getElementById("createProposalButton"),
   refreshButton: document.getElementById("refreshButton"),
-  proposalList: document.getElementById("proposalList")
+  proposalList: document.getElementById("proposalList"),
+  navItems: Array.from(document.querySelectorAll(".nav-item"))
 };
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -375,6 +376,25 @@ function executeDisabledReason(ended, passed, executed, canceled) {
 function setButtonState(button, enabled, enabledTitle, disabledTitle) {
   button.disabled = !enabled;
   button.title = enabled ? enabledTitle : disabledTitle;
+}
+
+function activateNavItem(targetId) {
+  els.navItems.forEach((item) => {
+    item.classList.toggle("active", item.dataset.target === targetId);
+  });
+}
+
+function focusSection(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return;
+  }
+
+  activateNavItem(targetId);
+  target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  target.focus({ preventScroll: true });
+  target.classList.remove("section-highlight");
+  window.requestAnimationFrame(() => target.classList.add("section-highlight"));
 }
 
 function proposalField(proposal, index, name) {
@@ -840,6 +860,12 @@ els.refundButton.addEventListener("click", sendRefund);
 els.claimFaucetButton.addEventListener("click", sendClaimFaucet);
 els.createProposalButton.addEventListener("click", sendCreateProposal);
 els.refreshButton.addEventListener("click", refreshAll);
+els.navItems.forEach((item) => {
+  item.addEventListener("click", (event) => {
+    event.preventDefault();
+    focusSection(item.dataset.target);
+  });
+});
 
 setDisconnectedState();
 if (!hasDeploymentConfig()) {

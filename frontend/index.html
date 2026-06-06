@@ -32,11 +32,11 @@
 
       <div class="workspace">
         <aside class="side-rail" aria-label="协议导航">
-          <nav class="nav-stack">
-            <a class="nav-item active" href="#walletBadge"><span></span>仪表盘</a>
-            <a class="nav-item" href="#claimFaucetButton"><span></span>水龙头</a>
-            <a class="nav-item" href="#createProposalButton"><span></span>发起提案</a>
-            <a class="nav-item" href="#proposalList"><span></span>DAO 治理</a>
+          <nav class="nav-stack" aria-label="页面区域导航">
+            <a class="nav-item active" href="#dashboardSection" data-target="dashboardSection" title="定位到钱包和募资概览"><span></span>仪表盘</a>
+            <a class="nav-item" href="#faucetSection" data-target="faucetSection" title="定位到水龙头领取区域"><span></span>水龙头</a>
+            <a class="nav-item" href="#proposalSection" data-target="proposalSection" title="定位到提案创建区域"><span></span>发起提案</a>
+            <a class="nav-item" href="#daoSection" data-target="daoSection" title="定位到 DAO 提案列表"><span></span>DAO 治理</a>
           </nav>
           <div class="network-card">
             <span class="status-dot"></span>
@@ -46,7 +46,7 @@
         </aside>
 
         <section class="main-board">
-          <article class="panel wallet-panel">
+          <article id="dashboardSection" class="panel wallet-panel" tabindex="-1">
             <div class="panel-title">
               <h2>钱包</h2>
               <span id="walletBadge" class="badge">未连接</span>
@@ -98,7 +98,7 @@
             <p id="userInvestment" class="muted">个人投资：-</p>
           </article>
 
-          <article class="panel faucet-panel">
+          <article id="faucetSection" class="panel faucet-panel" tabindex="-1">
             <div class="panel-title">
               <h2>水龙头</h2>
               <span id="faucetStatus" class="badge">待同步</span>
@@ -124,7 +124,7 @@
             <button id="claimFaucetButton">领取水龙头</button>
           </article>
 
-          <article class="panel proposal-panel">
+          <article id="proposalSection" class="panel proposal-panel" tabindex="-1">
             <div class="panel-title">
               <h2>发起提案</h2>
               <span id="proposalPower" class="badge">待同步</span>
@@ -143,7 +143,7 @@
             </div>
           </article>
 
-          <section class="panel dao-panel">
+          <section id="daoSection" class="panel dao-panel" tabindex="-1">
             <div class="panel-title">
               <h2>DAO 治理</h2>
               <button id="refreshButton" class="secondary">刷新</button>
