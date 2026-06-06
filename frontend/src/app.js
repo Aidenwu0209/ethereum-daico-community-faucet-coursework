@@ -70,6 +70,8 @@ let currentChainId = "";
 let currentBlockTimestamp = BigInt(Math.floor(Date.now() / 1000));
 let lastSnapshot = {
   tokenBalance: 0n,
+  fundingGoal: 0n,
+  raisedAmount: 0n,
   fundingFinalized: false,
   fundingSuccessful: false,
   fundingRemainingTime: 0n,
@@ -163,6 +165,62 @@ function formatInvestmentHint(investment) {
   return `可退款投资：${amount}`;
 }
 
+function formatFundingStatusText(fundingStatus, percentage) {
+  if (lastSnapshot.fundingFinalized) {
+    return `${FUNDING_STATUS[Number(fundingStatus)]} / ${lastSnapshot.fundingSuccessful ? "成功" : "失败"}`;
+  }
+  if (lastSnapshot.fundingRemainingTime > 0n && percentage >= 100) {
+    return "募资已达标 / 仍在募资期";
+  }
+  if (lastSnapshot.fundingRemainingTime === 0n) {
+    return `${FUNDING_STATUS[Number(fundingStatus)] || "募资已结束"} / 待结算`;
+  }
+  return FUNDING_STATUS[Number(fundingStatus)] || "-";
+}
+
+function investDisabledReason(connected, ready, amount) {
+  if (!connected) {
+    return "请先连接 MetaMask 钱包";
+  }
+  if (!ready) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (lastSnapshot.fundingFinalized) {
+    return "募资已结算，不能继续投资";
+  }
+  if (lastSnapshot.fundingRemainingTime === 0n) {
+    return "募资期已结束，请先结算募资";
+  }
+  if (amount <= 0) {
+    return "请输入大于 0 的 ETH 投资金额";
+  }
+  return "";
+}
+
+function investEnabledTitle() {
+  return lastSnapshot.raisedAmount >= lastSnapshot.fundingGoal
+    ? "募资已达标，但募资期内仍可继续投资"
+    : "向 DAICO 合约投资 ETH 并获得 CFT";
+}
+
+function finalizeDisabledReason(connected, ready) {
+  if (!connected) {
+    return "请先连接 MetaMask 钱包";
+  }
+  if (!ready) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (lastSnapshot.fundingFinalized) {
+    return "募资已结算，无需重复结算";
+  }
+  if (lastSnapshot.fundingRemainingTime > 0n) {
+    return lastSnapshot.raisedAmount >= lastSnapshot.fundingGoal
+      ? "募资已达标，但仍需等待募资期结束后结算"
+      : "募资期尚未结束，暂不能结算";
+  }
+  return "";
+}
+
 function refundDisabledReason(connected, ready) {
   if (!connected) {
     return "请先连接 MetaMask 钱包";
@@ -240,6 +298,76 @@ function faucetDisabledReason(connected, ready, now) {
   }
   if (now < lastSnapshot.nextClaimTime) {
     return `冷却中，剩余 ${formatSeconds(lastSnapshot.nextClaimTime - now)}`;
+  }
+  return "";
+}
+
+function formatProposalPower() {
+  if (!lastSnapshot.fundingFinalized) {
+    return "待结算";
+  }
+  if (!lastSnapshot.fundingSuccessful) {
+    return "募资失败";
+  }
+  return lastSnapshot.canCreateProposal ? "可发起" : "未达门槛";
+}
+
+function createProposalDisabledReason(connected, ready) {
+  if (!connected) {
+    return "请先连接 MetaMask 钱包";
+  }
+  if (!ready) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (!lastSnapshot.fundingFinalized) {
+    return "DAO 提案需募资成功并结算后开放";
+  }
+  if (!lastSnapshot.fundingSuccessful) {
+    return "募资失败，DAO 提案不开放";
+  }
+  if (!lastSnapshot.canCreateProposal) {
+    return "CFT 余额未达到 5% 提案门槛";
+  }
+  return "";
+}
+
+function voteDisabledReason(ended, voted, executed, canceled) {
+  if (!networkReady()) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (canceled) {
+    return "提案已撤销，不能投票";
+  }
+  if (executed) {
+    return "提案已执行，不能投票";
+  }
+  if (ended) {
+    return "投票期已结束";
+  }
+  if (voted) {
+    return "当前钱包已投过票";
+  }
+  if (lastSnapshot.tokenBalance === 0n) {
+    return "当前钱包没有 CFT 投票权";
+  }
+  return "";
+}
+
+function executeDisabledReason(ended, passed, executed, canceled) {
+  if (!networkReady()) {
+    return "请先切换到 Hardhat 本地网络";
+  }
+  if (canceled) {
+    return "提案已撤销，不能执行";
+  }
+  if (executed) {
+    return "提案已执行，无需重复执行";
+  }
+  if (!ended) {
+    return "投票期尚未结束，不能执行";
+  }
+  if (!passed) {
+    return "提案未通过，不能执行";
   }
   return "";
 }
@@ -416,12 +544,12 @@ async function refreshFunding() {
   lastSnapshot.fundingSuccessful = toBool(fundingSuccessful);
   lastSnapshot.fundingRemainingTime = toBigInt(remainingTime);
   lastSnapshot.investment = toBigInt(investment);
+  lastSnapshot.fundingGoal = goal;
+  lastSnapshot.raisedAmount = raised;
   els.fundingGoal.textContent = `${fromWei(fundingGoal, 2)} ETH`;
   els.raisedAmount.textContent = `${fromWei(raisedAmount, 4)} ETH (${Math.min(percentage, 100).toFixed(2)}%)`;
   els.remainingTime.textContent = formatSeconds(remainingTime);
-  els.fundingStatus.textContent = lastSnapshot.fundingFinalized
-    ? `${FUNDING_STATUS[Number(fundingStatus)]} / ${lastSnapshot.fundingSuccessful ? "成功" : "失败"}`
-    : FUNDING_STATUS[Number(fundingStatus)] || "-";
+  els.fundingStatus.textContent = formatFundingStatusText(fundingStatus, percentage);
   els.fundingProgress.style.width = `${Math.min(percentage, 100)}%`;
   els.userInvestment.textContent = formatInvestmentHint(investment);
 }
@@ -460,7 +588,7 @@ async function refreshGovernance() {
 
   lastSnapshot.totalSupply = toBigInt(totalSupply);
   lastSnapshot.canCreateProposal = toBool(canCreate);
-  els.proposalPower.textContent = lastSnapshot.canCreateProposal ? "可发起" : "未达门槛";
+  els.proposalPower.textContent = formatProposalPower();
 
   const count = Number(proposalCount);
   els.proposalList.innerHTML = "";
@@ -521,9 +649,11 @@ function renderProposal(proposal, voted, passed) {
   const voteFor = makeButton("支持", () => sendVote(id, true));
   const voteAgainst = makeButton("反对", () => sendVote(id, false));
   const execute = makeButton("执行提案", () => sendExecute(id));
-  voteFor.disabled = !networkReady() || ended || voted || executed || canceled || lastSnapshot.tokenBalance === 0n;
-  voteAgainst.disabled = voteFor.disabled;
-  execute.disabled = !networkReady() || !ended || !passed || executed || canceled;
+  const canVote = networkReady() && !ended && !voted && !executed && !canceled && lastSnapshot.tokenBalance > 0n;
+  const canExecute = networkReady() && ended && passed && !executed && !canceled;
+  setButtonState(voteFor, canVote, "支持该提案", voteDisabledReason(ended, voted, executed, canceled));
+  setButtonState(voteAgainst, canVote, "反对该提案", voteDisabledReason(ended, voted, executed, canceled));
+  setButtonState(execute, canExecute, "执行已通过的提案", executeDisabledReason(ended, passed, executed, canceled));
   actions.append(voteFor, voteAgainst, execute);
   card.appendChild(actions);
 
@@ -563,7 +693,10 @@ function updateButtons() {
   const connected = Boolean(account);
   const ready = connected && networkReady();
   const investAmount = Number(els.investAmount.value || 0);
-  const canInvest = ready && !lastSnapshot.fundingFinalized && investAmount > 0;
+  const canInvest = ready
+    && !lastSnapshot.fundingFinalized
+    && lastSnapshot.fundingRemainingTime > 0n
+    && investAmount > 0;
   const canFinalize = ready
     && !lastSnapshot.fundingFinalized
     && lastSnapshot.fundingRemainingTime === 0n;
@@ -579,18 +712,22 @@ function updateButtons() {
     && lastSnapshot.tokenBalance >= MIN_TOKEN_TO_CLAIM
     && lastSnapshot.faucetPool >= lastSnapshot.faucetAmount
     && now >= lastSnapshot.nextClaimTime;
+  const canCreateProposal = ready
+    && lastSnapshot.fundingFinalized
+    && lastSnapshot.fundingSuccessful
+    && lastSnapshot.canCreateProposal;
 
   setButtonState(
     els.investButton,
     canInvest,
-    "向 DAICO 合约投资 ETH 并获得 CFT",
-    ready ? "请输入大于 0 的投资金额，或等待当前募资状态允许投资" : "请先连接钱包并切换到 Hardhat 本地网络"
+    investEnabledTitle(),
+    investDisabledReason(connected, ready, investAmount)
   );
   setButtonState(
     els.finalizeButton,
     canFinalize,
     "结算募资状态",
-    ready ? "募资期尚未结束，暂不能结算" : "请先连接钱包并切换到 Hardhat 本地网络"
+    finalizeDisabledReason(connected, ready)
   );
   setButtonState(
     els.refundButton,
@@ -606,9 +743,9 @@ function updateButtons() {
   );
   setButtonState(
     els.createProposalButton,
-    ready && lastSnapshot.canCreateProposal,
+    canCreateProposal,
     "创建 DAO 治理提案",
-    ready ? "CFT 余额未达到发起提案门槛" : "请先连接钱包并切换到 Hardhat 本地网络"
+    createProposalDisabledReason(connected, ready)
   );
 }
 
