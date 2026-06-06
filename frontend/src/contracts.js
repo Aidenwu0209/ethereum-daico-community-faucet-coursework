@@ -772,7 +772,7 @@ export const DAICO_ABI = [
       },
       {
         "indexed": true,
-        "internalType": "enum CommunityDAICO.ProposalType",
+        "internalType": "enum DAICOBase.ProposalType",
         "name": "proposalType",
         "type": "uint8"
       },
@@ -1018,7 +1018,7 @@ export const DAICO_ABI = [
   {
     "inputs": [
       {
-        "internalType": "enum CommunityDAICO.ProposalType",
+        "internalType": "enum DAICOBase.ProposalType",
         "name": "proposalType",
         "type": "uint8"
       },
@@ -1219,7 +1219,7 @@ export const DAICO_ABI = [
     "name": "getFundingStatus",
     "outputs": [
       {
-        "internalType": "enum CommunityDAICO.FundingStatus",
+        "internalType": "enum DAICOBase.FundingStatus",
         "name": "",
         "type": "uint8"
       }
@@ -1264,7 +1264,7 @@ export const DAICO_ABI = [
             "type": "uint256"
           },
           {
-            "internalType": "enum CommunityDAICO.ProposalType",
+            "internalType": "enum DAICOBase.ProposalType",
             "name": "proposalType",
             "type": "uint8"
           },
@@ -1324,7 +1324,7 @@ export const DAICO_ABI = [
             "type": "uint256"
           }
         ],
-        "internalType": "struct CommunityDAICO.Proposal",
+        "internalType": "struct DAICOBase.Proposal",
         "name": "",
         "type": "tuple"
       }
@@ -1517,7 +1517,7 @@ export const DAICO_ABI = [
     "name": "token",
     "outputs": [
       {
-        "internalType": "contract CommunityToken",
+        "internalType": "contract ICommunityToken",
         "name": "",
         "type": "address"
       }

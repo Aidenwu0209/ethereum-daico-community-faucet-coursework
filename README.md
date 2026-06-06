@@ -4,10 +4,10 @@
 
 ## 功能范围
 
-- ERC20 代币：`Community Faucet Token` / `CFT`，只允许 DAICO 合约在募资阶段铸造，募资结算后永久关闭铸造。
-- DAICO 募资：投资、募资状态、结束结算、失败退款、成功后进入金库。
-- 水龙头：10% 预留池、持币门槛、单次领取上限、24 小时冷却、DAO 可修改参数。
-- DAO 治理：项目方或 5% 持币用户发起提案，72 小时投票，51% 支持率和 20% 参与率通过。
+- ERC20 代币模块：`Community Faucet Token` / `CFT`，只允许 DAICO 合约在募资阶段铸造，募资结算后永久关闭铸造。
+- DAICO 募资模块：投资、募资状态、结束结算、失败退款、成功后进入金库。
+- 水龙头模块：10% 预留池、持币门槛、单次领取上限、24 小时冷却、DAO 可修改参数。
+- DAO 治理模块：项目方或 5% 持币用户发起提案，72 小时投票，51% 支持率和 20% 参与率通过。
 - 提案类型：修改水龙头领取量、修改冷却时间、开启/关闭水龙头、通过 DAO 提取金库资金。
 - 前端：MetaMask 连接、余额、投资、募资结算、退款、水龙头、提案、投票和执行。
 
@@ -113,6 +113,13 @@ npm run frontend
 
 ```text
 contracts/
+  interfaces/
+    ICommunityToken.sol
+  modules/
+    DAICOBase.sol
+    DAICOFunding.sol
+    DAICOFaucet.sol
+    DAICOGovernance.sol
   CommunityToken.sol
   CommunityDAICO.sol
 scripts/
@@ -130,6 +137,8 @@ hardhat.config.js
 package.json
 README.md
 ```
+
+合约按题目要求拆分为 ERC20 代币、募资、水龙头、DAO 治理四个核心模块。`CommunityDAICO.sol` 是最终部署入口，通过继承组合 `DAICOFunding`、`DAICOFaucet`、`DAICOGovernance` 暴露统一 ABI；模块之间通过共享基类状态和 `ICommunityToken` 接口调用代币合约。
 
 ## 安全说明
 
